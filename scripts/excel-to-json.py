@@ -1,18 +1,42 @@
+from fileinput import filename
+import os
 import pandas as pd
-import xlrd
-import openpyxl
-from time import time
 
-start_time = time()
+# directorio_actual = os.getcwd()
 
-df_territoriales2011_ingresos = pd.read_excel('procesos-electorales/2011/Territoriales_2011.xlsx',sheet_name=['Ingresos'])
-print(df_territoriales2011_ingresos.shape)
+def scanDirectory(nameDir):
 
-elapsed_time = time() - start_time
-print("Elapsed time: %0.10f seconds." % elapsed_time)
+    dicFiles = {}
+    with os.scandir(nameDir) as ficheros:
+        for fichero in ficheros:
+            if fichero.is_file() and '.xlsx' in fichero.name:
+               #print('es archivo: ' + fichero.name)
+               
+               dicFiles[fichero.name.lower()] = nameDir + '\\' + fichero.name
+               
+            
+            else:
+                #print('Se enviará el directorio a scanear nuevamente: ' +(nameDir + '/' + fichero.name))
+                dicFilesElse = scanDirectory(nameDir + '\\' + fichero.name)
+                dicFiles.update(dicFilesElse)
+    return dicFiles
 
-# ['Ingresos', 'Gastos', 'Gastos208']
+def toPandas(dicFiles):
+    listDF = []
+    for nameFile, pathFile in dicFiles.items():
+
+        # string = ''.join( x for x in string if x not in characters)
+        df = pd.read_excel(pathFile,sheet_name=None)
+        for key in df.keys():
+            print(nameFile + '__' + key.lower())
+            inputs =''.join( x for x in nameFile if x not in '.xlsx') + '__' + key.lower()
+            print(inputs)
+            exec(inputs + '= df[key]')
+            df_shape = 'df_shape = df[key].shape'
+            exec(df_shape)
+            #print('dataframe creado: ' + inputs + '  =+=+=+=+  filas: ' + str(df_shape[0]) + '  =+=+=+=+  columnas: ' + str(df_shape[1]))
+    return listDF
 
 
-#wb = openpyxl.load_workbook("procesos-electorales/2011/Territoriales_2011.xlsx")
-#print(wb.sheetnames)
+dicFiles = scanDirectory('C:\\Users\\alejo\\OneDrive\\Documentos\\git-repositories\\cne-cuentas-claras\\test-raw-info')
+listDF = toPandas(dicFiles)
